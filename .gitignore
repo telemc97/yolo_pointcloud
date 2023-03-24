@@ -1,0 +1,4 @@
+.vscode/*
+src/tools/__pycache__/*
+src/yolo_pointcloud/__pycache__/*
+src/yolo_pointcloud/tools/__pycache__/*

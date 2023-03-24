@@ -1,0 +1,1 @@
+from yolo_pointcloud.main_detector import mainDetector

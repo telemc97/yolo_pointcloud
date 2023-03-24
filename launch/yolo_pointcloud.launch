@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <!-- <node name="rviz_voxels" pkg="rviz" type="rviz" output="screen" args="-d $(find yolo_pointcloud)/rviz/Safety_Pipeline.rviz" /> -->
+
+    <arg name="weights"                            default="$(find yolo_pointcloud)/weights/yolov8m.pt"/>
+    <arg name="confidence"                         default="0.7"/>
+    <arg name="max_detections"                     default="10"/>
+    <arg name="agnostic_nms"                       default="True"/>
+    <arg name="iou_thresh"                         default="0.5"/>
+    <arg name="half"                               default="False"/>
+    <arg name="thickness"                          default="2"/>
+    <arg name="font_scale"                         default="0.8"/>
+    <arg name="img_size"                           default="640"/>
+    <arg name="device"                             default="0"/>
+    <arg name="publish_image"                      default="True"/>
+    <arg name="matching_distance_coefficient"      default="0.35"/>
+
+    <arg name="camera0_topic"                      default="/stereo/left/image_raw"/>
+    <arg name="camera0_info_topic"                 default="/stereo/left/camera_info"/>
+    <arg name="camera1_topic"                      default="/stereo/right/image_raw"/>
+    <arg name="camera1_info_topic"                 default="/stereo/right/camera_info"/>
+
+    <arg name="publish_image_topic0"               default="/yolo_pointcloud/camera0/detection_image"/>
+    <arg name="detected_objects_topic0"            default="/yolo_pointcloud/camera0/detected_objects"/>
+
+    <!-- Node -->
+    <node name="detector" pkg="yolo_pointcloud" type="yolo_pointcloud_node.py" output="screen" respawn="true">
+        <param name="confidence"                    value="$(arg confidence)"/>
+        <param name="iou_thresh"                    value="$(arg iou_thresh)"/>
+        <param name="agnostic_nms"                  value="$(arg agnostic_nms)"/>
+        <param name="max_detections"                value="$(arg max_detections)"/>
+        <param name="weights"                       value="$(arg weights)"/>
+        <param name="half"                          value="$(arg half)"/>
+        <param name="device"                        value="$(arg device)"/>
+        <param name="img_size"                      value="$(arg img_size)"/>
+        <param name="thickness"                     value="$(arg thickness)"/>
+        <param name="font_scale"                    value="$(arg font_scale)"/>
+        <param name="publish_image"                 value="$(arg publish_image)"/>        
+        <param name="publish_image_topic0"          value="$(arg publish_image_topic0)"/>
+        <param name="detected_objects_topic0"       value="$(arg detected_objects_topic0)"/>
+        <param name="camera0_topic"                 value="$(arg camera0_topic)"/>
+        <param name="camera1_topic"                 value="$(arg camera1_topic)"/>
+        <param name="matching_distance_coefficient" value="$(arg matching_distance_coefficient)"/>
+    </node>
+</launch>
