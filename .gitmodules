@@ -1,0 +1,3 @@
+[submodule "src/yolo_pointcloud/ultralytics"]
+	path = src/yolo_pointcloud/ultralytics
+	url = https://github.com/ultralytics/ultralytics.git
