@@ -71,7 +71,7 @@ class mainDetector:
         #Define Publisher
         self.publisher_obj0 = rospy.Publisher('/yolo_pointcloud/detected_objects', BoundingBoxes, queue_size=10)
         self.publisher_img0 = rospy.Publisher('/yolo_pointcloud/detection_image', Image, queue_size=10)
-        self.publisher_point_with_conf = rospy.Publisher('/yolov5/Point_with_confidence', PointConfidenceStamped, queue_size=10)
+        self.publisher_point_with_conf = rospy.Publisher('/yolov5/point_with_confidence', PointConfidenceStamped, queue_size=10)
 
         self.publish_debug = rospy.Publisher('yolo_pointcloud_stereo_debug', YoloStereoDebug, queue_size=1)
         
@@ -79,7 +79,6 @@ class mainDetector:
 
         #Load model
         self.model = YOLO(self.weights)
-        rospy.loginfo(self.model.info(verbose=True))
 
         self.synch = message_filters.ApproximateTimeSynchronizer([self.imageRight, self.cameraInfoRight, self.imageLeft, self.cameraInfoLeft], queue_size=10, slop=0.5)
         self.synch.registerCallback(self.callback)
@@ -91,7 +90,6 @@ class mainDetector:
 
         bboxL = np.zeros(shape=(0,6), dtype=float)
         bboxR = np.zeros(shape=(0,6), dtype=float)
-
 
         self.cv_imageR = self.br.imgmsg_to_cv2(imageR, 'bgr8')
         self.cv_imageL = self.br.imgmsg_to_cv2(imageL, 'bgr8')
@@ -156,7 +154,7 @@ class mainDetector:
                             pointConfidenceStamped.point.x = point[0]
                             pointConfidenceStamped.point.y = point[1]
                             pointConfidenceStamped.point.z = point[2]
-                            pointConfidenceStamped.confidence =  conf
+                            pointConfidenceStamped.confidence = conf
                             self.publisher_point_with_conf.publish(pointConfidenceStamped)
 
                         points = np.column_stack((points, point))
