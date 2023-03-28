@@ -130,10 +130,10 @@ class mainDetector:
 
             if (len(bboxL)<len(bboxR)):
                 bboxR = bboxR[:len(bboxL),:]
-                confR = conf[:len(confL),:]
+                confR = confR[:len(confL)]
             else:
                 bboxL = bboxL[:len(bboxR),:]
-                confL = confL[:len(confR),:]
+                confL = confL[:len(confR)]
 
             matched = self.matches_gen(bboxL, bboxR)
             points = np.zeros(shape=(3,0), dtype=np.float32)
