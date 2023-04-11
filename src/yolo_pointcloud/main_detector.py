@@ -71,7 +71,7 @@ class mainDetector:
         #Define Publisher
         self.publisher_obj0 = rospy.Publisher('/yolo_pointcloud/detected_objects', BoundingBoxes, queue_size=10)
         self.publisher_img0 = rospy.Publisher('/yolo_pointcloud/detection_image', Image, queue_size=10)
-        self.publisher_point_with_conf = rospy.Publisher('/yolov5/point_with_confidence', PointConfidenceStamped, queue_size=10)
+        self.publisher_point_with_conf = rospy.Publisher('/yolo_pointcloud/point_with_confidence', PointConfidenceStamped, queue_size=10)
 
         self.publish_debug = rospy.Publisher('yolo_pointcloud_stereo_debug', YoloStereoDebug, queue_size=1)
         
