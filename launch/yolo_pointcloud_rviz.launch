@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+    <node name="rviz_voxels" pkg="rviz" type="rviz" output="screen" args="-d $(find yolo_pointcloud)/rviz/yolo_pointcloud.rviz" />
+    
+    <include file="$(find mavros)/launch/gazebo.launch" />
+    <include file="$(find yolo_pointcloud)/launch/yolo_pointcloud.launch" />
+    
+</launch>

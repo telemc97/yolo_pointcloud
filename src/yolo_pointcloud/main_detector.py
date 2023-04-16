@@ -35,16 +35,10 @@ class mainDetector:
 
         #YOLO SECTION--------------------------------------------------------------------------------------------------------------------------------------------
         self.weights = rospy.get_param('~weights')
-        self.matching_dist_coef = rospy.get_param('~matching_distance_coefficient', 0.25)
-        self.conf_thres = rospy.get_param('~confidence', 0.7)
-        self.iou_thres = rospy.get_param('~iou_thres', 0.45)
-        self.agnostic = rospy.get_param('~agnostic_nms', True)
-        self.max_det = rospy.get_param('~max_detections', 10)
-        self.classes = rospy.get_param('~classes', None)
+        self.matching_dist_coef = rospy.get_param('~matching_distance_coefficient', 0.15)
         self.deviceName = rospy.get_param('~device', '0')
         self.device = select_device(self.deviceName)
-        self.network_img_size = rospy.get_param('~img_size', 480)
-        self.half = rospy.get_param('~half', False)
+        
         self.font_scale = rospy.get_param('~font_scale', 0.8)
         self.thickness = rospy.get_param('~thickness', 2)
 
