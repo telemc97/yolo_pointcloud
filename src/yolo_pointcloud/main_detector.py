@@ -101,18 +101,13 @@ class mainDetector:
 
         im_viz = self.cv_imageL.copy()
 
-        predictions = self.model.predict(source=[self.cv_imageL,self.cv_imageR])
+        predictions = self.model.track(source=[self.cv_imageL,self.cv_imageR])
 
         predictionsL = predictions[0].cpu().numpy()
         predictionsR = predictions[1].cpu().numpy()
 
-        bboxL = predictionsL.boxes.xyxy
-        bboxR = predictionsR.boxes.xyxy
-
-        confL = predictionsL.boxes.conf
-        confR = predictionsR.boxes.conf
-        clsL = predictionsL.boxes.cls
-        clsR = predictionsR.boxes.cls
+        bboxL = predictionsL.boxes.data
+        bboxR = predictionsR.boxes.data
 
         annotator = Annotator(im_viz, line_width=self.thickness, font_size=self.font_scale)
 
@@ -124,55 +119,34 @@ class mainDetector:
 
             if (len(bboxL)<len(bboxR)):
                 bboxR = bboxR[:len(bboxL),:]
-                confR = confR[:len(confL)]
             else:
                 bboxL = bboxL[:len(bboxR),:]
-                confL = confL[:len(confR)]
 
             matched = self.matches_gen(bboxL, bboxR)
-            points = np.zeros(shape=(3,0), dtype=np.float32)
 
-            for i in range(bboxL.shape[0]):
-                center_x = int(((bboxL[i, 2]-bboxL[i, 0])/2) + bboxL[i, 0])
-                center_y = int(((bboxL[i, 3]-bboxL[i, 1])/2) + bboxL[i, 1])
+            for i in range(len(matched)):
+                pointL = (int(((matched[i, 2]-matched[i, 0])/2) + matched[i, 0]), int(((matched[i, 3]-matched[i, 1])/2) + matched[i, 1]))
+                pointR = (int(((matched[i, 6]-matched[i, 4])/2) + matched[i, 4]), int(((matched[i, 7]-matched[i, 5])/2) + matched[i, 5]))
+                point = self.dist_calc(pointL, pointR)
 
-                for j in range(matched.shape[0]):
-                    if ((center_x== matched[j,0]) and (center_y == matched[j,1])):
-                        pointL = matched[j,:2]
-                        pointR = matched[j,2:]
-                        conf = (confL[j] + confR[j])/2 #Confidence of two detection (Average of left and right)
-                        point = self.dist_calc(pointL, pointR)
+                if ((np.isnan(point).any()==False) and (np.isinf(point).any()==False)):
 
-                        if ((np.isnan(point).any()==False) and (np.isinf(point).any()==False)):
+                    pointConfidenceStamped = PointConfidenceStamped()
+                    pointConfidenceStamped.header = imageL.header
+                    pointConfidenceStamped.point.x = point[0]
+                    pointConfidenceStamped.point.y = point[1]
+                    pointConfidenceStamped.point.z = point[2]
+                    pointConfidenceStamped.id = matched[i,8]
+                    pointConfidenceStamped.confidence =  matched[i,9]
+                    pointConfidenceStamped.class_name = self.model.names[int(matched[i,10])]
+                    self.publisher_point_with_conf.publish(pointConfidenceStamped)
 
-                            pointConfidenceStamped = PointConfidenceStamped()
-                            pointConfidenceStamped.header = imageL.header
-                            pointConfidenceStamped.point.x = point[0]
-                            pointConfidenceStamped.point.y = point[1]
-                            pointConfidenceStamped.point.z = point[2]
-                            pointConfidenceStamped.confidence = conf
-                            self.publisher_point_with_conf.publish(pointConfidenceStamped)
-
-                        points = np.column_stack((points, point))
-
-            pointcloud2 = PointCloud_gen(points, imageL.header.stamp)
-            pointcloud2.pub_pcl()
-
-            for i in range(bboxL.shape[0]):
-                bboxmsg = BoundingBox()
-                bboxmsg.Class = self.model.names[int(clsL[i])]
-                bboxmsg.probability = confL[i]
-                bboxmsg.xmin = int(bboxL[i,0])
-                bboxmsg.ymin = int(bboxL[i,1])
-                bboxmsg.xmax = int(bboxL[i,2])
-                bboxmsg.ymax = int(bboxL[i,3])
                 if self.publish_img:
-                    label = f"{self.model.names[int(clsL[i])]} {confL[i]:.2f}"
+                    label = f"{self.model.names[int(matched[i,10])]} {matched[i,9]:.2f}"
                     annotator.box_label(box=bboxL[i,:], label=label)                
-                det_bounds.bounding_boxes.append(bboxmsg)
        
-        #Publish Messages
-        self.publisher_obj0.publish(det_bounds)
+        # #Publish Messages
+        # self.publisher_obj0.publish(det_bounds)
 
 
         #Publish Images
@@ -228,28 +202,28 @@ class mainDetector:
                 descriptorsR = np.vstack((descriptorsR, ds_right))
 
         if type(descriptorsL)!= type(None) and type(descriptorsR)!= type(None):
-
+            matched_kp = np.zeros(shape=(0,11), dtype=np.float32)
             knnMatches = 2
             matches = self.matcher.knnMatch(descriptorsL, descriptorsR, k=knnMatches)
-            good_matches = []
             tresholdDist = self.matching_dist_coef * math.sqrt((math.pow(imageLeftMono.shape[0],2) + math.pow(imageLeftMono.shape[1],2)))
             for i in range(len(matches)):
                 for j in range(len(matches[0])):
-                    match0 = keypointsL[matches[i][j].queryIdx].pt
-                    match1 = keypointsR[matches[i][j].trainIdx].pt
-                    dist = math.sqrt((match0[0] - match1[0]) * (match0[0] - match1[0]) + (match0[1] - match1[1]) * (match0[1] - match1[1]))
+                    if (boxL[(matches[i][j].queryIdx), 6]==boxR[(matches[i][j].trainIdx), 6]):
+                        match0 = keypointsL[matches[i][j].queryIdx].pt
+                        match1 = keypointsR[matches[i][j].trainIdx].pt
+                        dist = math.sqrt((match0[0] - match1[0]) * (match0[0] - match1[0]) + (match0[1] - match1[1]) * (match0[1] - match1[1]))
                     if (dist < tresholdDist and abs(match0[1]-match1[1])<1):
-                        good_matches.append(matches[i][j])
-
-        matched_kp = np.zeros(shape=(0,4), dtype=float)
-
-        for mat in good_matches:
-            imgL_idx = mat.queryIdx
-            imgR_idx = mat.trainIdx
-
-            ptL = keypointsL[imgL_idx].pt
-            ptR = keypointsR[imgR_idx].pt
-
-            matched_kp = np.vstack((matched_kp, np.array([ptL[0], ptL[1], ptR[0], ptR[1]], dtype=float)))
-        
+                        matched_kp = np.vstack((matched_kp, 
+                                                [boxL[(matches[i][j].queryIdx),0],#x min Left
+                                                 boxL[(matches[i][j].queryIdx),1],#y min Left
+                                                 boxL[(matches[i][j].queryIdx),2],#x max Left
+                                                 boxL[(matches[i][j].queryIdx),3],#y max Left
+                                                 boxR[(matches[i][j].trainIdx),0],#x min Right
+                                                 boxR[(matches[i][j].trainIdx),1],#y min Right  
+                                                 boxR[(matches[i][j].trainIdx),2],#x max Right
+                                                 boxR[(matches[i][j].trainIdx),3],#y max Right
+                                                 boxL[(matches[i][j].queryIdx), 4], #ID from left image
+                                                 ((boxL[(matches[i][j].queryIdx),5]+boxL[(matches[i][j].trainIdx),5])/2), #avg confidence
+                                                 boxL[(matches[i][j].queryIdx), 6]])) #class from left image
+                        #matched_kp data is in the following format [xL,yL,xL,yL,xR,yR,xR,yR,ID,conf,cls]
         return matched_kp
