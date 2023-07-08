@@ -7,12 +7,16 @@ import message_filters
 import numpy as np
 import rospkg
 import rospy
+import tf
 from cv_bridge import CvBridge
 from sensor_msgs.msg import CameraInfo, Image
+from geometry_msgs.msg import PointStamped
 
 from yolo_pointcloud.msg import BoundingBox, BoundingBoxes, YoloStereoDebug, PointConfidenceStamped
 
 import yolo_pointcloud.tools.general as tools
+from yolo_pointcloud.tools.det_collector import Detection, Collector
+
 from yolo_pointcloud.tools.pcl import PointCloud_gen
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "ultralytics"))
@@ -71,9 +75,12 @@ class mainDetector:
         
         rospy.loginfo("Nodes Launched")
 
+        #Create Collector
+        self.collector = Collector(20)
+
         #Load model
         self.model = YOLO(self.weights)
-
+        self.listener = tf.TransformListener()
         self.synch = message_filters.ApproximateTimeSynchronizer([self.imageRight, self.cameraInfoRight, self.imageLeft, self.cameraInfoLeft], queue_size=10, slop=0.5)
         self.synch.registerCallback(self.callback)
 
@@ -128,6 +135,22 @@ class mainDetector:
                 pointL = (int(((matched[i, 2]-matched[i, 0])/2) + matched[i, 0]), int(((matched[i, 3]-matched[i, 1])/2) + matched[i, 1]))
                 pointR = (int(((matched[i, 6]-matched[i, 4])/2) + matched[i, 4]), int(((matched[i, 7]-matched[i, 5])/2) + matched[i, 5]))
                 point = self.dist_calc(pointL, pointR)
+                
+                transform_ok=False
+                while not transform_ok and not rospy.is_shutdown():
+                    try:
+                        tr_matrix = self.listener.asMatrix('map', imageL.header)
+                        xyz = tuple(np.dot(tr_matrix, np.array([point[0], point[1], point[2], 1.0])))[:3]
+                        det = Detection()
+                        det.insertData(xyz, matched[i,8], matched[i,9], matched[i,10])
+                        self.collector.insertPoint(det)
+                        transform_ok = True
+                    except tf.ExtrapolationException as e:
+                        rospy.logwarn("Exception on transforming pose... trying again \n(" + str(e) + ")")
+                        rospy.sleep(0.1)
+                        imageL.header.stamp = self.listener.getLatestCommonTime('stereo_cam', 'map')
+
+
 
                 if ((np.isnan(point).any()==False) and (np.isinf(point).any()==False)):
 

@@ -1,8 +1,4 @@
 import numpy as np
-import torch
-import math
-import cv2
-
 
 def get_list_size (matrix, name):
     nrow = len(matrix)
@@ -12,8 +8,10 @@ def get_list_size (matrix, name):
         ncol = 0
     # rospy.loginfo('%s size %i X %i' %(name, nrow, ncol))
 
+
 def get_2d_list_slice(matrix, start_row, end_row, start_col, end_col):
     return [row[start_col:end_col] for row in matrix[start_row:end_row]]
+
 
 def homogenous_to_euclidian(dist):
     x = dist[0,0]/dist[3,0]
@@ -22,6 +20,8 @@ def homogenous_to_euclidian(dist):
     points_3d = np.array([x,y,z], dtype=np.float16)
     return points_3d
 
+
+import math
 def euler_from_quaternion(quaternion):
         """
         Convert a quaternion into euler angles (roll, pitch, yaw)
@@ -50,6 +50,7 @@ def euler_from_quaternion(quaternion):
      
         return roll_x, pitch_y, yaw_z # in radians
 
+
 def get_single_det(box):
     newbox = np.zeros(shape=(0,6), dtype=object)
     i = 1
@@ -66,13 +67,14 @@ def get_single_det(box):
         newbox = np.vstack((xmin, ymin, xmax, ymax, box[i,4], box[i,5]))
     return newbox
 
+
 def get_center(xmin, ymin, xmax, ymax):
     center_x = int( ((xmax-xmin)/2) + xmin )
     center_y = int( ((ymax-ymin)/2) + ymin ) 
     return center_x, center_y
 
-## From https://github.com/telemc97/yolov7/blob/main/utils/general.py Forked from https://github.com/WongKinYiu/yolov7.git
 
+## From https://github.com/telemc97/yolov7/blob/main/utils/general.py Forked from https://github.com/WongKinYiu/yolov7.git
 def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     # Rescale coords (xyxy) from img1_shape to img0_shape
     if ratio_pad is None:  # calculate from img0_shape
@@ -89,6 +91,8 @@ def scale_coords(img1_shape, coords, img0_shape, ratio_pad=None):
     return coords
 
 
+import torch
+import cv2
 def clip_coords(boxes, shape):
     # Clip bounding xyxy bounding boxes to image shape (height, width)
     if isinstance(boxes, torch.Tensor):  # faster individually
