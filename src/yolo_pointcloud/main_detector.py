@@ -15,7 +15,7 @@ from geometry_msgs.msg import PointStamped
 from yolo_pointcloud.msg import BoundingBox, BoundingBoxes, YoloStereoDebug, PointConfidenceStamped
 
 import yolo_pointcloud.tools.general as tools
-from yolo_pointcloud.tools.det_collector import Detection, Collector
+from yolo_pointcloud.tools.det_collector import Collector
 
 from yolo_pointcloud.tools.pcl import PointCloud_gen
 
@@ -122,12 +122,10 @@ class mainDetector:
         det_bounds.header = imageL.header
         det_bounds.image_header = imageL.header
 
-        if (len(bboxL)>0 and len(bboxR)>0):
+        if ((bboxL.shape[0]>0 and bboxL.shape[1]==7) and (bboxR.shape[0]>0 and bboxR.shape[1]==7)):
 
-            if (len(bboxL)<len(bboxR)):
-                bboxR = bboxR[:len(bboxL),:]
-            else:
-                bboxL = bboxL[:len(bboxR),:]
+            if (len(bboxL)<len(bboxR)): bboxR = bboxR[:len(bboxL),:]
+            else: bboxL = bboxL[:len(bboxR),:]
 
             matched = self.matches_gen(bboxL, bboxR)
 
@@ -141,9 +139,8 @@ class mainDetector:
                     try:
                         tr_matrix = self.listener.asMatrix('map', imageL.header)
                         xyz = tuple(np.dot(tr_matrix, np.array([point[0], point[1], point[2], 1.0])))[:3]
-                        det = Detection()
-                        det.insertData(xyz, matched[i,8], matched[i,9], matched[i,10])
-                        self.collector.insertPoint(det)
+                        det = np.array([xyz[0], xyz[1], xyz[2], matched[i, 8], matched[i, 9], matched[i, 10]], dtype=np.float32)
+                        self.collector.insertPoint(det, imageL.header.stamp)
                         transform_ok = True
                     except tf.ExtrapolationException as e:
                         rospy.logwarn("Exception on transforming pose... trying again \n(" + str(e) + ")")
