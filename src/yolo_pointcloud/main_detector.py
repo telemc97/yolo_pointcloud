@@ -139,8 +139,8 @@ class mainDetector:
                     try:
                         tr_matrix = self.listener.asMatrix('map', imageL.header)
                         xyz = tuple(np.dot(tr_matrix, np.array([point[0], point[1], point[2], 1.0])))[:3]
-                        det = np.array([xyz[0], xyz[1], xyz[2], matched[i, 8], matched[i, 9], matched[i, 10]], dtype=np.float32)
-                        self.collector.insertPoint(det, imageL.header.stamp)
+                        det = np.array([xyz[0], xyz[1], xyz[2], matched[i, 8], matched[i, 9], matched[i, 10], imageL.header.stamp.to_sec()], dtype=np.float32)
+                        self.collector.insertPoint(det)
                         transform_ok = True
                     except tf.ExtrapolationException as e:
                         rospy.logwarn("Exception on transforming pose... trying again \n(" + str(e) + ")")
@@ -151,7 +151,7 @@ class mainDetector:
 
                 if ((np.isnan(point).any()==False) and (np.isinf(point).any()==False)):
 
-                    pointConfidenceStamped = PointConfidenceStamped()
+                    pointConfidenceStamped = DetectionStamped()
                     pointConfidenceStamped.header = imageL.header
                     pointConfidenceStamped.point.x = point[0]
                     pointConfidenceStamped.point.y = point[1]

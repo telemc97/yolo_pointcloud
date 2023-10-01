@@ -52,7 +52,7 @@ add_message_files(FILES
   BoundingBox.msg
   BoundingBoxes.msg
   YoloStereoDebug.msg
-  PointConfidenceStamped.msg
+  DetectionStamped.msg
 )
 
 ## Generate services in the 'srv' folder
