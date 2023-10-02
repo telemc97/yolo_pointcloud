@@ -35,7 +35,7 @@ class Collector:
                 datum[4] = point[6]
                 if (i==(self.num-1)):
                     datum = self.data[tuple((point[3],point[5]))][0]
-                    point_stamped = self.calcPosition(self.data[tuple((point[3],point[5]))], point[3])
+                    point_stamped = self.calcPosition(self.data[tuple((point[3],point[5]))], point[3], point[5])
                     self.point_publisher.publish(point_stamped)
                     datum[0] = 0
                     datum[1] = 0
@@ -48,7 +48,7 @@ class Collector:
                     datum[2] = 0
                     break
                 
-    def calcPosition(self, points, id, outlier_dist=2) -> PointStamped:
+    def calcPosition(self, points, id, cls, outlier_dist=2) -> PointStamped:
         #Output is the odometry ()
         median_x = np.median(points[:,0])
         median_y = np.median(points[:,1])
@@ -71,5 +71,6 @@ class Collector:
         point_stamped_.point.z = new_pt[2]
         point_stamped_.confidence = avg_conf
         point_stamped_.id = id
+        point_stamped_.class_name = cls
         point_stamped_.header.stamp = rospy.Time.from_sec(median_stamp)
         return point_stamped_
