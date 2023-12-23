@@ -10,14 +10,10 @@ import rospy
 import tf
 from cv_bridge import CvBridge
 from sensor_msgs.msg import CameraInfo, Image
-from geometry_msgs.msg import PointStamped
 
-from yolo_pointcloud.msg import BoundingBox, BoundingBoxes, YoloStereoDebug, PointConfidenceStamped
+from yolo_pointcloud.msg import DetectionStamped, BoundingBoxes, YoloStereoDebug
 
 import yolo_pointcloud.tools.general as tools
-from yolo_pointcloud.tools.det_collector import Collector
-
-from yolo_pointcloud.tools.pcl import PointCloud_gen
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "ultralytics"))
 
@@ -67,16 +63,13 @@ class mainDetector:
 
         
         #Define Publisher
-        self.publisher_obj0 = rospy.Publisher('/yolo_pointcloud/detected_objects', BoundingBoxes, queue_size=10)
-        self.publisher_img0 = rospy.Publisher('/yolo_pointcloud/detection_image', Image, queue_size=10)
-        self.publisher_point_with_conf = rospy.Publisher('/yolo_pointcloud/point_with_confidence', PointConfidenceStamped, queue_size=10)
+        self.publisher_obj0 = rospy.Publisher('/yolo_tracking/detected_objects', BoundingBoxes, queue_size=10)
+        self.publisher_img0 = rospy.Publisher('/yolo_tracking/detection_image', Image, queue_size=10)
+        self.publisher_det_stmp = rospy.Publisher('/yolo_tracking/detected_objects_stamped', DetectionStamped, queue_size=10)
 
-        self.publish_debug = rospy.Publisher('yolo_pointcloud_stereo_debug', YoloStereoDebug, queue_size=1)
+        self.publish_debug = rospy.Publisher('/yolo_tracking/debug', YoloStereoDebug, queue_size=1)
         
         rospy.loginfo("Nodes Launched")
-
-        #Create Collector
-        self.collector = Collector(20)
 
         #Load model
         self.model = YOLO(self.weights)
@@ -139,35 +132,26 @@ class mainDetector:
                     try:
                         tr_matrix = self.listener.asMatrix('map', imageL.header)
                         xyz = tuple(np.dot(tr_matrix, np.array([point[0], point[1], point[2], 1.0])))[:3]
-                        det = np.array([xyz[0], xyz[1], xyz[2], matched[i, 8], matched[i, 9], matched[i, 10], imageL.header.stamp.to_sec()], dtype=np.float32)
-                        self.collector.insertPoint(det)
+                        
+                        # Create and populate DetectionStamped message
+                        det_stamped = DetectionStamped()
+                        det_stamped.class_name = matched[i, 10]
+                        det_stamped.confidence = matched[i, 9]
+                        det_stamped.id = matched[i, 8]
+                        det_stamped.point.x = xyz[0]
+                        det_stamped.point.y = xyz[1]
+                        det_stamped.point.z = xyz[2]
+                        self.publisher_det_stmp.publish(det_stamped)
+
                         transform_ok = True
                     except tf.ExtrapolationException as e:
                         rospy.logwarn("Exception on transforming pose... trying again \n(" + str(e) + ")")
                         rospy.sleep(0.1)
                         imageL.header.stamp = self.listener.getLatestCommonTime('stereo_cam', 'map')
-
-
-
-                if ((np.isnan(point).any()==False) and (np.isinf(point).any()==False)):
-
-                    pointConfidenceStamped = DetectionStamped()
-                    pointConfidenceStamped.header = imageL.header
-                    pointConfidenceStamped.point.x = point[0]
-                    pointConfidenceStamped.point.y = point[1]
-                    pointConfidenceStamped.point.z = point[2]
-                    pointConfidenceStamped.id = matched[i,8]
-                    pointConfidenceStamped.confidence =  matched[i,9]
-                    pointConfidenceStamped.class_name = self.model.names[int(matched[i,10])]
-                    self.publisher_point_with_conf.publish(pointConfidenceStamped)
-
+                    
                 if self.publish_img:
                     label = f"{self.model.names[int(matched[i,10])]} {matched[i,9]:.2f}"
                     annotator.box_label(box=bboxL[i,:], label=label)                
-       
-        # #Publish Messages
-        # self.publisher_obj0.publish(det_bounds)
-
 
         #Publish Images
         if self.publish_img:

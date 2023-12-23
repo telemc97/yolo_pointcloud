@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
 
-    <arg name="weights"                            default="$(find yolo_pointcloud)/weights/yolov8m.pt"/>
+    <arg name="weights"                            default="$(find yolo_pointcloud)/weights/yolov8n.pt"/>
     <arg name="thickness"                          default="2"/>
     <arg name="font_scale"                         default="0.8"/>
     <arg name="device"                             default="0"/>

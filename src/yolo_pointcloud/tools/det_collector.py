@@ -1,5 +1,6 @@
 import numpy as np
 from geometry_msgs.msg import PointStamped
+from yolo_pointcloud.msg import DetectionStamped
 import rospy
 
 class Collector:
@@ -13,7 +14,7 @@ class Collector:
         self.num = num
         self.cur_idx = 0
 
-        self.point_publisher = rospy.Publisher('/det_tracker/point', PointStamped, queue_size=10)
+        self.point_publisher = rospy.Publisher('/det_tracker/point', DetectionStamped, queue_size=10)
 
     def insertPoint(self, point):
         #point format: [x, y, z, ID, conf, cls, stamp]
